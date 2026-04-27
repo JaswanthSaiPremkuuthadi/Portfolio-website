@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KJSP — RPG Portfolio Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08060f;
+  --bg2:#0d0b18;
+  --panel:#12102a;
+  --panel2:#1a1836;
+  --gold:#f5c518;
+  --gold2:#ffe06e;
+  --teal:#00e5cc;
+  --purple:#7c3aed;
+  --purple2:#a78bfa;
+  --red:#ff4d6a;
+  --green:#39ff14;
+  --blue:#4facfe;
+  --orange:#ff9a3c;
+  --text:#e8f0fe;
+  --muted:#6b7db3;
+  --border:rgba(245,197,24,.18);
+  --border2:rgba(0,229,204,.15);
+  --pixel:'Press Start 2P',monospace;
+  --vt:'VT323',monospace;
+  --orb:'Orbitron',sans-serif;
+}
+html{overflow-x:hidden;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--vt);font-size:18px;line-height:1.5;overflow-x:hidden;cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpolygon points='2,2 2,16 6,12 9,18 11,17 8,11 14,11' fill='%23f5c518' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") 2 2,auto}
+::selection{background:var(--gold);color:#000}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--gold),var(--teal))}
+
+/* ═══ SCANLINES ═══ */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);pointer-events:none;z-index:9999;animation:scanMove 8s linear infinite}
+@keyframes scanMove{0%{background-position:0 0}100%{background-position:0 40px}}
+
+/* ═══ PIXEL STAR BG ═══ */
+#starfield{position:fixed;inset:0;pointer-events:none;z-index:0}
+
+/* ═══ LOADER / TITLE SCREEN ═══ */
+#titleScreen{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;overflow:hidden}
+#titleScreen.fade-out{animation:fadeOut .8s ease forwards}
+@keyframes fadeOut{to{opacity:0;pointer-events:none;visibility:hidden}}
+
+.title-press{font-family:var(--pixel);font-size:clamp(7px,1.5vw,11px);color:var(--gold);letter-spacing:.15em;animation:blink 1.2s step-end infinite;margin-top:40px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.title-logo{font-family:var(--pixel);font-size:clamp(28px,6vw,56px);color:var(--gold);text-shadow:0 0 30px rgba(245,197,24,.7),4px 4px 0 #7c3aed;line-height:1.2;text-align:center;animation:titlePulse 2s ease-in-out infinite alternate}
+@keyframes titlePulse{from{text-shadow:0 0 20px rgba(245,197,24,.5),4px 4px 0 #7c3aed}to{text-shadow:0 0 50px rgba(245,197,24,.9),4px 4px 0 #7c3aed,0 0 80px rgba(0,229,204,.3)}}
+.title-sub{font-family:var(--pixel);font-size:clamp(5px,1vw,8px);color:var(--teal);letter-spacing:.3em;text-transform:uppercase;margin-top:12px;text-align:center}
+.title-tagline{font-family:var(--vt);font-size:clamp(16px,2.5vw,22px);color:var(--purple2);margin-top:16px;letter-spacing:.1em;text-align:center}
+
+.title-sprite{font-size:clamp(40px,8vw,80px);animation:bounce 0.8s steps(2) infinite;margin-bottom:8px}
+@keyframes bounce{0%{transform:translateY(0)}50%{transform:translateY(-12px)}100%{transform:translateY(0)}}
+
+.title-menu{display:flex;flex-direction:column;gap:14px;margin-top:36px;align-items:center}
+.title-menu-item{font-family:var(--pixel);font-size:clamp(6px,1.3vw,10px);color:var(--text);letter-spacing:.12em;cursor:pointer;padding:10px 28px;border:2px solid var(--border);border-radius:4px;background:rgba(245,197,24,.05);transition:all .2s;position:relative}
+.title-menu-item:hover,.title-menu-item.selected{color:var(--bg);background:var(--gold);border-color:var(--gold);box-shadow:0 0 20px rgba(245,197,24,.5)}
+.title-menu-item:hover::before,.title-menu-item.selected::before{content:'▶';position:absolute;left:-20px;color:var(--gold)}
+
+.title-version{font-family:var(--pixel);font-size:7px;color:var(--muted);margin-top:30px;letter-spacing:.1em}
+
+/* ═══ GLOBAL HUD ═══ */
+#hud{position:fixed;top:0;left:0;right:0;z-index:500;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,6,15,.92);border-bottom:2px solid var(--border);backdrop-filter:blur(10px)}
+.hud-left{display:flex;align-items:center;gap:16px}
+.hud-avatar{width:40px;height:40px;border:2px solid var(--gold);border-radius:4px;background:linear-gradient(135deg,var(--purple),var(--gold));display:flex;align-items:center;justify-content:center;font-size:18px;font-family:var(--pixel);color:#000;font-size:10px;box-shadow:0 0 12px rgba(245,197,24,.4)}
+.hud-info{}
+.hud-name{font-family:var(--pixel);font-size:clamp(5px,1vw,8px);color:var(--gold);letter-spacing:.08em;margin-bottom:4px}
+.hud-class{font-family:var(--vt);font-size:14px;color:var(--teal);letter-spacing:.1em}
+
+.hud-bars{display:flex;flex-direction:column;gap:4px}
+.hud-bar-row{display:flex;align-items:center;gap:6px}
+.hud-bar-label{font-family:var(--pixel);font-size:6px;color:var(--muted);width:16px}
+.hud-bar-track{width:120px;height:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.hud-bar-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.bar-hp{background:linear-gradient(90deg,#ff4d6a,#ff8fa3)}
+.bar-mp{background:linear-gradient(90deg,#4facfe,#a78bfa)}
+.hud-bar-val{font-family:var(--pixel);font-size:6px;color:var(--text);min-width:36px}
+
+.hud-right{display:flex;align-items:center;gap:20px}
+.hud-xp-section{text-align:right}
+.hud-level{font-family:var(--pixel);font-size:clamp(8px,1.8vw,14px);color:var(--gold);text-shadow:0 0 10px rgba(245,197,24,.5)}
+.hud-xp-bar-track{width:140px;height:6px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
+.hud-xp-fill{height:100%;width:82%;background:linear-gradient(90deg,var(--purple),var(--gold),var(--teal));animation:xpShine 2s linear infinite;position:relative}
+@keyframes xpShine{0%{filter:brightness(1)}50%{filter:brightness(1.3)}100%{filter:brightness(1)}}
+.hud-xp-label{font-family:var(--pixel);font-size:6px;color:var(--muted);margin-top:3px}
+
+.hud-nav{display:flex;gap:6px}
+.hud-nav-btn{font-family:var(--pixel);font-size:6px;padding:5px 8px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;transition:all .2s;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px}
+.hud-nav-btn:hover{background:rgba(245,197,24,.1);border-color:var(--gold);color:var(--gold)}
+.hud-nav-btn.active{background:rgba(245,197,24,.15);border-color:var(--gold);color:var(--gold)}
+.hud-nav-icon{font-size:14px}
+
+/* ═══ MAIN CONTENT ═══ */
+main{padding-top:70px;position:relative;z-index:1}
+
+/* ═══ DUNGEON ROOM WRAPPER ═══ */
+.dungeon-room{min-height:100vh;position:relative;padding:60px 20px;display:flex;align-items:center;justify-content:center}
+.dungeon-room::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0}
+.room-hero::before{background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(124,58,237,.12),transparent)}
+.room-skills::before{background:radial-gradient(ellipse 60% 80% at 30% 50%,rgba(0,229,204,.08),transparent)}
+.room-exp::before{background:radial-gradient(ellipse 70% 60% at 70% 50%,rgba(245,197,24,.07),transparent)}
+.room-projects::before{background:radial-gradient(ellipse 80% 60% at 50% 30%,rgba(79,172,254,.08),transparent)}
+.room-education::before{background:radial-gradient(ellipse 60% 80% at 30% 70%,rgba(163,94,255,.08),transparent)}
+.room-achievements::before{background:radial-gradient(ellipse 70% 60% at 70% 30%,rgba(255,157,60,.08),transparent)}
+.room-contact::before{background:radial-gradient(ellipse 80% 80% at 50% 50%,rgba(57,255,20,.07),transparent)}
+
+.room-inner{position:relative;z-index:1;width:100%;max-width:1100px;margin:0 auto}
+
+/* ROOM TITLE BANNER */
+.room-banner{display:flex;align-items:center;gap:16px;margin-bottom:48px}
+.room-banner-icon{font-size:36px;animation:float 2s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.room-banner-text{}
+.room-banner-label{font-family:var(--pixel);font-size:clamp(6px,1.2vw,9px);color:var(--teal);letter-spacing:.25em;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.room-banner-label::before{content:'';width:20px;height:2px;background:var(--teal)}
+.room-banner-title{font-family:var(--pixel);font-size:clamp(12px,2.5vw,22px);color:var(--gold);text-shadow:3px 3px 0 rgba(124,58,237,.6);line-height:1.4}
+
+/* ROOM DIVIDER */
+.room-divider{width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),var(--teal),transparent);margin:80px 0 0;opacity:.3;position:relative;z-index:1}
+.room-divider::after{content:'⚔';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--bg);padding:0 12px;color:var(--gold);font-size:18px}
+
+/* ═══ HERO ROOM ═══ */
+.hero-layout{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+@media(max-width:900px){.hero-layout{grid-template-columns:1fr}}
+
+.hero-character-box{display:flex;flex-direction:column;align-items:center;gap:20px}
+.char-sprite-frame{width:200px;height:240px;border:3px solid var(--gold);border-radius:8px;background:linear-gradient(180deg,rgba(124,58,237,.2),rgba(8,6,15,.8));display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:0 0 30px rgba(245,197,24,.2),inset 0 0 30px rgba(124,58,237,.1);overflow:hidden}
+.char-sprite-frame::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(8,6,15,.8));z-index:1}
+.char-sprite-frame img{width:100%;height:100%;object-fit:cover;object-position:top center;position:absolute;inset:0;z-index:0;filter:saturate(1.1)}
+.char-name-plate{font-family:var(--pixel);font-size:clamp(5px,.9vw,7px);color:var(--bg);background:var(--gold);padding:5px 12px;border-radius:2px;letter-spacing:.1em;margin-top:8px;position:relative;z-index:2}
+
+.char-stats-box{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:14px;width:200px}
+.char-stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--vt);font-size:16px}
+.char-stat-row:last-child{border-bottom:none}
+.char-stat-row .label{color:var(--muted)}
+.char-stat-row .value{color:var(--gold);font-family:var(--pixel);font-size:7px}
+
+.hero-info-box{}
+.hero-class-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(124,58,237,.15);border:2px solid rgba(124,58,237,.4);border-radius:4px;padding:6px 14px;margin-bottom:16px}
+.hero-class-badge .icon{font-size:16px}
+.hero-class-badge span{font-family:var(--pixel);font-size:7px;color:var(--purple2);letter-spacing:.12em}
+
+.hero-name-rpg{font-family:var(--pixel);font-size:clamp(12px,2.5vw,20px);color:#fff;text-shadow:3px 3px 0 var(--purple),0 0 30px rgba(245,197,24,.3);line-height:1.4;margin-bottom:8px}
+.hero-title-rpg{font-family:var(--vt);font-size:clamp(16px,2vw,22px);color:var(--teal);letter-spacing:.15em;margin-bottom:20px}
+.hero-lore{font-family:var(--vt);font-size:clamp(14px,1.8vw,18px);color:var(--muted);line-height:1.6;margin-bottom:24px;border-left:3px solid var(--purple2);padding-left:16px}
+
+.quest-log{background:var(--panel);border:2px solid var(--border);border-radius:6px;padding:16px;margin-bottom:24px}
+.quest-log-title{font-family:var(--pixel);font-size:7px;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.quest-log-title::before{content:'📜'}
+.quest-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--vt);font-size:16px}
+.quest-item:last-child{border-bottom:none}
+.quest-item .icon{font-size:14px}
+.quest-item .val{color:var(--gold);font-family:var(--pixel);font-size:7px;margin-left:auto}
+
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.rpg-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:4px;font-family:var(--pixel);font-size:7px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;cursor:pointer;border:2px solid;transition:all .15s;position:relative;overflow:hidden}
+.rpg-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);transform:translateX(-100%);transition:transform .3s}
+.rpg-btn:hover::after{transform:translateX(100%)}
+.rpg-btn-gold{background:rgba(245,197,24,.15);border-color:var(--gold);color:var(--gold);box-shadow:0 0 15px rgba(245,197,24,.2)}
+.rpg-btn-gold:hover{background:var(--gold);color:#000;box-shadow:0 0 25px rgba(245,197,24,.5)}
+.rpg-btn-teal{background:rgba(0,229,204,.08);border-color:var(--teal);color:var(--teal)}
+.rpg-btn-teal:hover{background:rgba(0,229,204,.2);box-shadow:0 0 20px rgba(0,229,204,.3)}
+
+/* ═══ SKILLS ROOM ═══ */
+.skills-rpg-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.skills-rpg-grid{grid-template-columns:1fr}}
+.skill-rpg-panel{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:20px;transition:border-color .3s,transform .2s,box-shadow .3s;position:relative;overflow:hidden}
+.skill-rpg-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--gold),var(--teal));opacity:.6}
+.skill-rpg-panel:hover{border-color:rgba(245,197,24,.4);transform:translateY(-3px);box-shadow:0 10px 40px rgba(245,197,24,.1)}
+.skill-rpg-title{font-family:var(--pixel);font-size:8px;color:var(--gold);letter-spacing:.15em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+.skill-rpg-row{margin-bottom:12px}
+.skill-rpg-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.skill-rpg-name{font-family:var(--vt);font-size:18px;color:var(--text)}
+.skill-rpg-lvl{font-family:var(--pixel);font-size:6px;color:var(--gold);background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.2);padding:2px 8px;border-radius:2px}
+.skill-rpg-track{height:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:2px;overflow:hidden;position:relative}
+.skill-rpg-bar{height:100%;width:0;transition:width 1.5s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
+.skill-rpg-bar::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 8px,rgba(255,255,255,.15) 8px,rgba(255,255,255,.15) 9px)}
+.bar-warrior{background:linear-gradient(90deg,#7c3aed,#f5c518)}
+.bar-mage{background:linear-gradient(90deg,#00e5cc,#4facfe)}
+.bar-rogue{background:linear-gradient(90deg,#a78bfa,#00e5cc)}
+.bar-ranger{background:linear-gradient(90deg,#ff9a3c,#f5c518)}
+
+.chip-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.rpg-chip{font-family:var(--pixel);font-size:6px;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);color:var(--teal);background:rgba(0,229,204,.06);cursor:default;transition:all .2s;letter-spacing:.06em}
+.rpg-chip:hover{border-color:var(--teal);background:rgba(0,229,204,.15);transform:scale(1.05)}
+
+/* ═══ EXPERIENCE ROOM ═══ */
+.timeline-rpg{position:relative;padding-left:50px}
+.timeline-rpg::before{content:'';position:absolute;left:14px;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold),var(--teal),rgba(0,229,204,.1));border-radius:99px}
+
+.tl-rpg-item{position:relative;margin-bottom:32px;opacity:0;transform:translateX(-30px);transition:opacity .7s ease,transform .7s ease}
+.tl-rpg-item.visible{opacity:1;transform:translateX(0)}
+.tl-rpg-dot{position:absolute;left:-42px;top:10px;width:20px;height:20px;border-radius:3px;background:var(--panel);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:10px;box-shadow:0 0 12px rgba(245,197,24,.4)}
+
+.tl-rpg-card{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:20px 24px;transition:all .25s;position:relative;overflow:hidden}
+.tl-rpg-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold),var(--teal))}
+.tl-rpg-card:hover{border-color:rgba(245,197,24,.4);box-shadow:0 0 30px rgba(245,197,24,.1);transform:translateX(6px)}
+
+.tl-rpg-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.tl-rpg-role{font-family:var(--pixel);font-size:8px;color:var(--text);letter-spacing:.05em}
+.tl-rpg-date-badge{font-family:var(--pixel);font-size:6px;color:var(--gold);background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.25);border-radius:3px;padding:3px 10px;white-space:nowrap}
+.tl-rpg-company{font-family:var(--vt);font-size:18px;color:var(--teal);margin-bottom:14px}
+
+.quest-bullets{list-style:none;display:flex;flex-direction:column;gap:7px}
+.quest-bullets li{font-family:var(--vt);font-size:16px;color:var(--muted);line-height:1.5;padding-left:20px;position:relative}
+.quest-bullets li::before{content:'▸';position:absolute;left:0;color:var(--gold);font-size:16px}
+.quest-bullets strong{color:var(--text)}
+
+/* DROPS */
+.drop-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.loot-drop{display:inline-flex;align-items:center;gap:5px;background:rgba(57,255,20,.08);border:1px solid rgba(57,255,20,.25);border-radius:3px;padding:3px 10px;font-family:var(--pixel);font-size:6px;color:var(--green);animation:dropGlow 2s ease-in-out infinite alternate}
+@keyframes dropGlow{from{box-shadow:0 0 6px rgba(57,255,20,.2)}to{box-shadow:0 0 16px rgba(57,255,20,.4)}}
+
+/* ═══ PROJECTS ROOM ═══ */
+.proj-rpg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.proj-rpg-card{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:22px;position:relative;overflow:hidden;opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease,border-color .3s,box-shadow .3s;cursor:pointer}
+.proj-rpg-card.visible{opacity:1;transform:translateY(0)}
+.proj-rpg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .3s}
+.proj-rpg-card:hover{border-color:rgba(79,172,254,.4);box-shadow:0 12px 40px rgba(79,172,254,.1)}
+.proj-rpg-card:hover::before{opacity:1;background:linear-gradient(90deg,var(--blue),var(--teal))}
+
+.proj-rarity{font-family:var(--pixel);font-size:6px;letter-spacing:.15em;margin-bottom:8px}
+.rarity-legendary{color:#ff9a3c}
+.rarity-epic{color:var(--purple2)}
+.rarity-rare{color:var(--blue)}
+
+.proj-rpg-icon{font-size:32px;margin-bottom:10px;display:block;filter:drop-shadow(0 0 8px rgba(245,197,24,.3))}
+.proj-rpg-title{font-family:var(--pixel);font-size:8px;color:var(--text);margin-bottom:8px;line-height:1.5}
+.proj-rpg-desc{font-family:var(--vt);font-size:16px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.proj-rpg-tags{display:flex;flex-wrap:wrap;gap:4px}
+.proj-rpg-tag{font-family:var(--pixel);font-size:5px;padding:3px 8px;border-radius:2px;background:rgba(79,172,254,.08);border:1px solid rgba(79,172,254,.2);color:var(--blue)}
+
+.item-tooltip{font-family:var(--pixel);font-size:6px;color:var(--orange);margin-top:12px;display:flex;align-items:center;gap:6px;opacity:.7}
+
+/* ═══ EDUCATION ROOM ═══ */
+.edu-rpg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.edu-rpg-card{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:22px;transition:all .25s;position:relative;overflow:hidden}
+.edu-rpg-card:hover{border-color:rgba(163,94,255,.4);transform:translateY(-4px);box-shadow:0 10px 30px rgba(124,58,237,.15)}
+.edu-rpg-card::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--gold));opacity:.5}
+.edu-crest{font-size:36px;margin-bottom:14px;display:block;animation:float 3s ease-in-out infinite}
+.edu-rpg-degree{font-family:var(--pixel);font-size:7px;color:var(--text);margin-bottom:6px;line-height:1.5}
+.edu-rpg-school{font-family:var(--vt);font-size:18px;color:var(--teal);margin-bottom:16px}
+.edu-rpg-footer{display:flex;justify-content:space-between;align-items:center}
+.edu-gpa-display{display:flex;align-items:baseline;gap:4px}
+.edu-gpa-num{font-family:var(--pixel);font-size:18px;color:var(--gold);text-shadow:0 0 15px rgba(245,197,24,.5)}
+.edu-gpa-label{font-family:var(--pixel);font-size:6px;color:var(--muted)}
+.edu-year-badge{font-family:var(--pixel);font-size:6px;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:3px 8px;border-radius:2px}
+
+/* ═══ ACHIEVEMENTS ROOM ═══ */
+.achv-rpg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.achv-rpg-card{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:18px;display:flex;align-items:flex-start;gap:14px;transition:all .25s;position:relative}
+.achv-rpg-card:hover{border-color:rgba(255,157,60,.4);transform:translateY(-2px);box-shadow:0 8px 25px rgba(255,157,60,.1)}
+.achv-trophy{width:44px;height:44px;border-radius:6px;background:rgba(255,157,60,.08);border:2px solid rgba(255,157,60,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;animation:trophyGlow 3s ease-in-out infinite alternate}
+@keyframes trophyGlow{from{box-shadow:0 0 8px rgba(255,157,60,.2)}to{box-shadow:0 0 20px rgba(255,157,60,.4)}}
+.achv-rpg-text{font-family:var(--vt);font-size:16px;color:var(--text);line-height:1.5}
+.achv-rpg-text strong{color:var(--gold);font-family:var(--vt)}
+
+/* UNLOCKED BADGE */
+.unlocked-badge{position:absolute;top:10px;right:10px;font-family:var(--pixel);font-size:5px;color:var(--green);background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.3);padding:2px 6px;border-radius:2px;animation:blinkBadge 2s step-end infinite}
+@keyframes blinkBadge{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══ CONTACT ROOM ═══ */
+.contact-rpg-inner{max-width:680px;margin:0 auto;text-align:center}
+.contact-rpg-sprite{font-size:64px;margin-bottom:24px;animation:bounce 1s steps(2) infinite;display:block;filter:drop-shadow(0 0 20px rgba(245,197,24,.4))}
+.contact-rpg-msg{background:var(--panel);border:2px solid var(--border);border-radius:6px;padding:20px 24px;margin-bottom:32px;text-align:left;position:relative}
+.contact-rpg-msg::before{content:'NPC';position:absolute;top:-10px;left:16px;font-family:var(--pixel);font-size:7px;color:var(--bg);background:var(--gold);padding:2px 8px;border-radius:2px}
+.contact-rpg-msg p{font-family:var(--vt);font-size:18px;color:var(--text);line-height:1.6;animation:typewriter 2s steps(60) forwards;overflow:hidden;white-space:nowrap;border-right:2px solid var(--gold)}
+@keyframes typewriter{from{width:0}to{width:100%}}
+
+.contact-rpg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+@media(max-width:600px){.contact-rpg-grid{grid-template-columns:1fr}}
+.contact-rpg-card{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:18px 12px;text-align:center;text-decoration:none;color:var(--text);transition:all .25s;position:relative;overflow:hidden}
+.contact-rpg-card:hover{border-color:rgba(245,197,24,.45);transform:translateY(-4px);box-shadow:0 10px 30px rgba(245,197,24,.12)}
+.contact-rpg-icon{font-size:28px;margin-bottom:8px;display:block}
+.contact-rpg-lbl{font-family:var(--pixel);font-size:6px;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.contact-rpg-val{font-family:var(--vt);font-size:14px;color:var(--teal);word-break:break-all}
+
+.contact-loc{font-family:var(--pixel);font-size:7px;color:var(--muted);letter-spacing:.1em;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* ═══ GAME NOTIFICATIONS ═══ */
+#notifications{position:fixed;top:80px;right:20px;z-index:600;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.notif{font-family:var(--pixel);font-size:7px;padding:10px 16px;border-radius:4px;border:2px solid;display:flex;align-items:center;gap:10px;animation:notifSlide .4s ease;max-width:280px}
+@keyframes notifSlide{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+.notif.fade{animation:notifFade .5s ease forwards}
+@keyframes notifFade{to{opacity:0;transform:translateX(50px)}}
+.notif-xp{background:rgba(57,255,20,.1);border-color:rgba(57,255,20,.4);color:var(--green)}
+.notif-item{background:rgba(79,172,254,.1);border-color:rgba(79,172,254,.4);color:var(--blue)}
+.notif-achv{background:rgba(245,197,24,.1);border-color:rgba(245,197,24,.4);color:var(--gold)}
+
+/* ═══ FLOATING XP POPUP ═══ */
+.xp-popup{position:fixed;font-family:var(--pixel);font-size:9px;color:var(--green);text-shadow:0 0 10px rgba(57,255,20,.8);pointer-events:none;z-index:700;animation:xpFloat 1.5s ease forwards}
+@keyframes xpFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.3)}}
+
+/* ═══ SCROLL INDICATOR ═══ */
+.scroll-down-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);font-family:var(--pixel);font-size:7px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:8px;animation:fadePulse 2s ease-in-out infinite}
+.scroll-arrow{font-size:20px;animation:arrowBounce .8s steps(2) infinite}
+@keyframes arrowBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+@keyframes fadePulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* FOOTER */
+footer{text-align:center;padding:24px;border-top:2px solid var(--border);font-family:var(--pixel);font-size:7px;color:var(--muted);letter-spacing:.1em;position:relative;z-index:1}
+footer span{color:var(--gold)}
+
+/* ═══ MOBILE ═══ */
+@media(max-width:768px){
+  .hud-nav{display:none}
+  .hud-bar-track{width:80px}
+  .hud-xp-bar-track{width:90px}
+  .contact-rpg-msg p{white-space:normal;border-right:none;animation:none;overflow:visible}
+}
+@media(max-width:480px){
+  .skills-rpg-grid{grid-template-columns:1fr}
+  .proj-rpg-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- STARFIELD CANVAS -->
+<canvas id="starfield"></canvas>
+
+<!-- NOTIFICATIONS -->
+<div id="notifications"></div>
+
+<!-- ════════════════ TITLE SCREEN ════════════════ -->
+<div id="titleScreen">
+  <div class="title-sprite">🧙</div>
+  <div class="title-logo">KJSP</div>
+  <div class="title-sub">Portfolio Quest · Version 2.0</div>
+  <div class="title-tagline">IIT BHU → Senior AI Engineer @ Mphasis</div>
+  <div class="title-menu" id="titleMenu">
+    <div class="title-menu-item selected" data-action="new">▶ NEW GAME — View Portfolio</div>
+    <div class="title-menu-item" data-action="hire">⚔ HIRE ME — Send Message</div>
+    <div class="title-menu-item" data-action="linkedin">🌐 GUILD HALL — LinkedIn</div>
+  </div>
+  <div class="title-press">PRESS ANY KEY OR CLICK TO START</div>
+  <div class="title-version">© 2025 KJSP.EXE · BUILT IN BANGALORE · ALL RIGHTS RESERVED</div>
+</div>
+
+<!-- ════════════════ HUD ════════════════ -->
+<div id="hud">
+  <div class="hud-left">
+    <div class="hud-avatar">KP</div>
+    <div class="hud-info">
+      <div class="hud-name">KUTHADI JASWANTH SAI PREM</div>
+      <div class="hud-class">⚔ Senior AI Engineer · LVL 99</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:5px">
+    <div class="hud-bars">
+      <div class="hud-bar-row">
+        <div class="hud-bar-label" style="color:var(--red)">HP</div>
+        <div class="hud-bar-track"><div class="hud-bar-fill bar-hp" style="width:95%"></div></div>
+        <div class="hud-bar-val">950/1000</div>
+      </div>
+      <div class="hud-bar-row">
+        <div class="hud-bar-label" style="color:var(--blue)">MP</div>
+        <div class="hud-bar-track"><div class="hud-bar-fill bar-mp" style="width:88%"></div></div>
+        <div class="hud-bar-val">880/1000</div>
+      </div>
+    </div>
+    <div class="hud-xp-section">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="hud-xp-label">XP — 82,000 / 100,000</div>
+        <div class="hud-level">LVL 99</div>
+      </div>
+      <div class="hud-xp-bar-track"><div class="hud-xp-fill"></div></div>
+    </div>
+  </div>
+  <div class="hud-right">
+    <nav class="hud-nav">
+      <a href="#hero" class="hud-nav-btn active"><div class="hud-nav-icon">🏠</div>HOME</a>
+      <a href="#skills" class="hud-nav-btn"><div class="hud-nav-icon">⚔</div>SKILLS</a>
+      <a href="#experience" class="hud-nav-btn"><div class="hud-nav-icon">📜</div>QUESTS</a>
+      <a href="#projects" class="hud-nav-btn"><div class="hud-nav-icon">🗡</div>ITEMS</a>
+      <a href="#education" class="hud-nav-btn"><div class="hud-nav-icon">📚</div>LORE</a>
+      <a href="#achievements" class="hud-nav-btn"><div class="hud-nav-icon">🏆</div>ACHV</a>
+      <a href="#contact" class="hud-nav-btn"><div class="hud-nav-icon">💌</div>TALK</a>
+    </nav>
+  </div>
+</div>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<main>
+
+<!-- ══ ROOM 1: HERO ══ -->
+<section id="hero" class="dungeon-room room-hero">
+  <div class="room-inner">
+    <div class="room-banner reveal">
+      <div class="room-banner-icon">🏰</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">ENTRANCE — FLOOR 1</div>
+        <div class="room-banner-title">CHARACTER SELECT</div>
+      </div>
+    </div>
+    <div class="hero-layout">
+      <div class="hero-character-box reveal">
+        <div class="char-sprite-frame">
+          <img src="img.jpeg" alt="KJSP" onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\'font-size:64px;z-index:2;position:relative\'>🧙‍♂️</div>'"/>
+        </div>
+        <div class="char-name-plate">KUTHADI J.S. PREM</div>
+        <div class="char-stats-box">
+          <div class="char-stat-row"><span class="label">Class</span><span class="value" style="color:var(--purple2)">AI ENGINEER</span></div>
+          <div class="char-stat-row"><span class="label">Guild</span><span class="value" style="color:var(--teal)">MPHASIS</span></div>
+          <div class="char-stat-row"><span class="label">Origin</span><span class="value">IIT BHU</span></div>
+          <div class="char-stat-row"><span class="label">DSA</span><span class="value">500+ SOLVED</span></div>
+          <div class="char-stat-row"><span class="label">GFG Rank</span><span class="value">#856</span></div>
+          <div class="char-stat-row"><span class="label">Gold Saved</span><span class="value" style="color:var(--gold)">₹5.4 CRORE</span></div>
+        </div>
+      </div>
+      <div class="hero-info-box reveal">
+        <div class="hero-class-badge"><span class="icon">🤖</span><span>MULTI-AGENT SPECIALIST</span></div>
+        <div class="hero-name-rpg">Kuthadi Jaswanth<br/>Sai Prem</div>
+        <div class="hero-title-rpg">◈ Senior AI Engineer · Sparkle-Labs, Mphasis</div>
+        <p class="hero-lore">From the sacred halls of IIT BHU Varanasi (14th Convocation, 2025) — forged in Mining Engineering, reborn as an AI Specialist. Now building multi-agent pipelines, RAG engines, and LLM-powered systems for Fortune 500 clients across the digital realm.</p>
+        <div class="quest-log">
+          <div class="quest-log-title">ACTIVE QUEST LOG</div>
+          <div class="quest-item"><span class="icon">⚙️</span><span>Bitbucket → ADO Migration</span><span class="val" style="color:var(--green)">✓ COMPLETE</span></div>
+          <div class="quest-item"><span class="icon">🏦</span><span>Capital One AI POC</span><span class="val" style="color:var(--green)">✓ COMPLETE</span></div>
+          <div class="quest-item"><span class="icon">🤖</span><span>HR Screening Multi-Agent</span><span class="val" style="color:var(--green)">✓ COMPLETE</span></div>
+          <div class="quest-item"><span class="icon">📄</span><span>Next Enterprise POC</span><span class="val" style="color:var(--orange)">▸ IN PROGRESS</span></div>
+        </div>
+        <div class="hero-actions">
+          <a href="mailto:saipremjaswanth@gmail.com" class="rpg-btn rpg-btn-gold">✉ HIRE ME</a>
+          <a href="#skills" class="rpg-btn rpg-btn-teal">▸ VIEW SKILLS</a>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+          <span style="font-family:var(--pixel);font-size:6px;background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.3);color:var(--green);padding:4px 10px;border-radius:3px;animation:blinkBadge 2s step-end infinite">● OPEN TO OPPORTUNITIES</span>
+          <span style="font-family:var(--pixel);font-size:6px;background:rgba(79,172,254,.1);border:1px solid rgba(79,172,254,.3);color:var(--blue);padding:4px 10px;border-radius:3px">📍 BANGALORE, KA</span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-down-hint">
+      <span>EXPLORE WORLD</span>
+      <span class="scroll-arrow">▼</span>
+    </div>
+  </div>
+</section>
+<div class="room-divider"></div>
+
+<!-- ══ ROOM 2: SKILLS ══ -->
+<section id="skills" class="dungeon-room room-skills">
+  <div class="room-inner">
+    <div class="room-banner reveal">
+      <div class="room-banner-icon">⚔️</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">ARMORY — FLOOR 2</div>
+        <div class="room-banner-title">SKILLS & TECH TREE</div>
+      </div>
+    </div>
+    <div class="skills-rpg-grid">
+      <div class="skill-rpg-panel reveal">
+        <div class="skill-rpg-title">💻 PROGRAMMING CLASS</div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">Python</span><span class="skill-rpg-lvl">LVL 90</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-warrior" data-w="90"></div></div>
+        </div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">C++</span><span class="skill-rpg-lvl">LVL 85</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-mage" data-w="85"></div></div>
+        </div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">MySQL / SQL</span><span class="skill-rpg-lvl">LVL 83</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-rogue" data-w="83"></div></div>
+        </div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">ReactJS / HTML / CSS</span><span class="skill-rpg-lvl">LVL 78</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-ranger" data-w="78"></div></div>
+        </div>
+      </div>
+      <div class="skill-rpg-panel reveal">
+        <div class="skill-rpg-title">🤖 AI/ML SPELL BOOK</div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">LangChain / LangGraph</span><span class="skill-rpg-lvl">LVL 88</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-mage" data-w="88"></div></div>
+        </div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">Multi-Agent Systems</span><span class="skill-rpg-lvl">LVL 86</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-warrior" data-w="86"></div></div>
+        </div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">RAG Pipelines</span><span class="skill-rpg-lvl">LVL 87</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-rogue" data-w="87"></div></div>
+        </div>
+        <div class="skill-rpg-row">
+          <div class="skill-rpg-hdr"><span class="skill-rpg-name">Gemini LLMs / GAN / ML</span><span class="skill-rpg-lvl">LVL 80</span></div>
+          <div class="skill-rpg-track"><div class="skill-rpg-bar bar-ranger" data-w="80"></div></div>
+        </div>
+      </div>
+      <div class="skill-rpg-panel reveal">
+        <div class="skill-rpg-title">🛠 EQUIPMENT INVENTORY</div>
+        <div class="chip-grid">
+          <span class="rpg-chip">Jira</span><span class="rpg-chip">Jenkins CI/CD</span><span class="rpg-chip">Power BI</span><span class="rpg-chip">Figma</span><span class="rpg-chip">VS Code</span><span class="rpg-chip">Bitbucket</span><span class="rpg-chip">ADO</span><span class="rpg-chip">Canva</span><span class="rpg-chip">MS Office</span>
+        </div>
+      </div>
+      <div class="skill-rpg-panel reveal">
+        <div class="skill-rpg-title">🎯 DOMAIN MASTERY</div>
+        <div class="chip-grid">
+          <span class="rpg-chip">Product Management</span><span class="rpg-chip">Data Analysis</span><span class="rpg-chip">Strategy</span><span class="rpg-chip">DSA</span><span class="rpg-chip">Event Management</span><span class="rpg-chip">UI/UX</span><span class="rpg-chip">API Integration</span><span class="rpg-chip">CI/CD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="room-divider"></div>
+
+<!-- ══ ROOM 3: EXPERIENCE ══ -->
+<section id="experience" class="dungeon-room room-exp">
+  <div class="room-inner">
+    <div class="room-banner reveal">
+      <div class="room-banner-icon">📜</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">QUEST ARCHIVE — FLOOR 3</div>
+        <div class="room-banner-title">WORK EXPERIENCE</div>
+      </div>
+    </div>
+    <div class="timeline-rpg">
+      <div class="tl-rpg-item">
+        <div class="tl-rpg-dot">⚔</div>
+        <div class="tl-rpg-card">
+          <div class="tl-rpg-header">
+            <span class="tl-rpg-role">Senior Software Engineer (AI Focused)</span>
+            <span class="tl-rpg-date-badge">07/2025 – PRESENT</span>
+          </div>
+          <div class="tl-rpg-company">Mphasis – The Next Applied · Sparkle-Labs · Bangalore</div>
+          <ul class="quest-bullets">
+            <li>Delivered POV on <strong>Agent Space, LAMs & MCPs</strong> for enterprise applicability</li>
+            <li>Built <strong>ReactJS UI + multi-agent workflow</strong> with ADK for Capital One car/loan management POC</li>
+            <li>Vanguard POC: processed unstructured PDF data using <strong>Python data cleaning pipelines</strong></li>
+            <li>Led <strong>Bitbucket → ADO migration</strong> automating 200+ repos with improved reliability</li>
+            <li>QA automation POC for M&T Bank using <strong>Jira Zephyr + Jenkins CI/CD</strong></li>
+          </ul>
+          <div class="drop-row">
+            <span class="loot-drop">🗡 MULTI-AGENT MASTERY</span>
+            <span class="loot-drop">📦 200+ REPOS MIGRATED</span>
+            <span class="loot-drop">🏦 FORTUNE 500 CLEARED</span>
+          </div>
+        </div>
+      </div>
+      <div class="tl-rpg-item">
+        <div class="tl-rpg-dot">🧪</div>
+        <div class="tl-rpg-card">
+          <div class="tl-rpg-header">
+            <span class="tl-rpg-role">AI Product Manager Intern</span>
+            <span class="tl-rpg-date-badge">05/2025 – 07/2025</span>
+          </div>
+          <div class="tl-rpg-company">My Analytics School · Noida</div>
+          <ul class="quest-bullets">
+            <li>Designed <strong>LangGraph multi-agent workflow</strong> for automated HR screening across hiring stages</li>
+            <li>Integrated <strong>Gmail & Twilio APIs</strong> for automated outreach and telephonic interviews</li>
+            <li>Reduced screening time: <strong>1000+ resumes · ~1000 hrs → ~5 hrs</strong></li>
+            <li>Collaborated with <strong>25+ member</strong> cross-functional team</li>
+          </ul>
+          <div class="drop-row">
+            <span class="loot-drop">⚡ 200× SPEED BOOST</span>
+            <span class="loot-drop">🤝 TEAM LEADER</span>
+          </div>
+        </div>
+      </div>
+      <div class="tl-rpg-item">
+        <div class="tl-rpg-dot">🔬</div>
+        <div class="tl-rpg-card">
+          <div class="tl-rpg-header">
+            <span class="tl-rpg-role">Data Science Intern</span>
+            <span class="tl-rpg-date-badge">06/2024 – 07/2024</span>
+          </div>
+          <div class="tl-rpg-company">My Analytics School · Noida</div>
+          <ul class="quest-bullets">
+            <li>Led team of <strong>20+ students</strong> building feedback generation system</li>
+            <li>Built <strong>Advanced RAG engine</strong> with LangChain + Gemini LLMs</li>
+            <li>Saved <strong>₹5.4 Crore</strong> through AI-powered feedback automation</li>
+          </ul>
+          <div class="drop-row">
+            <span class="loot-drop">💰 ₹5.4 CRORE SAVED</span>
+            <span class="loot-drop">🧠 RAG MASTER</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="room-divider"></div>
+
+<!-- ══ ROOM 4: PROJECTS ══ -->
+<section id="projects" class="dungeon-room room-projects">
+  <div class="room-inner">
+    <div class="room-banner reveal">
+      <div class="room-banner-icon">🗡️</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">ITEM FORGE — FLOOR 4</div>
+        <div class="room-banner-title">FEATURED PROJECTS</div>
+      </div>
+    </div>
+    <div class="proj-rpg-grid">
+      <div class="proj-rpg-card">
+        <div class="proj-rarity rarity-legendary">◆ LEGENDARY ITEM</div>
+        <span class="proj-rpg-icon">🤖</span>
+        <div class="proj-rpg-title">Multi-Agent AI Hiring System</div>
+        <p class="proj-rpg-desc">LangGraph pipeline reducing 1000+ resume screening from ~1000 hrs to ~5 hrs. Gmail & Twilio APIs for automated communication.</p>
+        <div class="proj-rpg-tags"><span class="proj-rpg-tag">LangGraph</span><span class="proj-rpg-tag">Gmail API</span><span class="proj-rpg-tag">Twilio</span></div>
+        <div class="item-tooltip">▸ [200× EFFICIENCY ENCHANT]</div>
+      </div>
+      <div class="proj-rpg-card">
+        <div class="proj-rarity rarity-legendary">◆ LEGENDARY ITEM</div>
+        <span class="proj-rpg-icon">📝</span>
+        <div class="proj-rpg-title">Advanced RAG Feedback Engine</div>
+        <p class="proj-rpg-desc">LangChain + Gemini LLMs generating personalized student feedback. Saved ₹5.4 Crore in operational costs at My Analytics School.</p>
+        <div class="proj-rpg-tags"><span class="proj-rpg-tag">LangChain</span><span class="proj-rpg-tag">Gemini</span><span class="proj-rpg-tag">RAG</span></div>
+        <div class="item-tooltip">▸ [₹5.4 CRORE GOLD DROP]</div>
+      </div>
+      <div class="proj-rpg-card">
+        <div class="proj-rarity rarity-epic">◇ EPIC ITEM</div>
+        <span class="proj-rpg-icon">🏦</span>
+        <div class="proj-rpg-title">Capital One Car & Loan POC</div>
+        <p class="proj-rpg-desc">ReactJS UI + multi-agent workflow with Google ADK for car and loan management proof-of-concept at Mphasis for Capital One Bank.</p>
+        <div class="proj-rpg-tags"><span class="proj-rpg-tag">ReactJS</span><span class="proj-rpg-tag">ADK</span><span class="proj-rpg-tag">Enterprise</span></div>
+        <div class="item-tooltip">▸ [FORTUNE 500 CLEARED]</div>
+      </div>
+      <div class="proj-rpg-card">
+        <div class="proj-rarity rarity-epic">◇ EPIC ITEM</div>
+        <span class="proj-rpg-icon">⚙️</span>
+        <div class="proj-rpg-title">Mine Machinery Predictive Maintenance</div>
+        <p class="proj-rpg-desc">ML model forecasting mine vehicle reliability using TTF data with Weibull Distribution. Built under Prof. Suprakash Gupta, IIT BHU.</p>
+        <div class="proj-rpg-tags"><span class="proj-rpg-tag">Python</span><span class="proj-rpg-tag">ML</span><span class="proj-rpg-tag">Weibull</span></div>
+        <div class="item-tooltip">▸ [IIT BHU CRAFTED]</div>
+      </div>
+      <div class="proj-rpg-card">
+        <div class="proj-rarity rarity-rare">◈ RARE ITEM</div>
+        <span class="proj-rpg-icon">🖼️</span>
+        <div class="proj-rpg-title">Single Image Super-Resolution GAN</div>
+        <p class="proj-rpg-desc">Super Resolution GAN enhancing image quality 4×. Perceptual loss via pre-trained models for accuracy validation.</p>
+        <div class="proj-rpg-tags"><span class="proj-rpg-tag">PyTorch</span><span class="proj-rpg-tag">GAN</span><span class="proj-rpg-tag">Computer Vision</span></div>
+        <div class="item-tooltip">▸ [4× VISUAL UPGRADE]</div>
+      </div>
+      <div class="proj-rpg-card">
+        <div class="proj-rarity rarity-rare">◈ RARE ITEM</div>
+        <span class="proj-rpg-icon">📊</span>
+        <div class="proj-rpg-title">Sales Data SQL – Power BI Analysis</div>
+        <p class="proj-rpg-desc">MySQL aggregates and joins for company sales analysis. Interactive dashboards tracking 3-year revenue and profit trends.</p>
+        <div class="proj-rpg-tags"><span class="proj-rpg-tag">MySQL</span><span class="proj-rpg-tag">Power BI</span><span class="proj-rpg-tag">Analytics</span></div>
+        <div class="item-tooltip">▸ [3-YEAR DATA SCRIED]</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="room-divider"></div>
+
+<!-- ══ ROOM 5: EDUCATION ══ -->
+<section id="education" class="dungeon-room room-education">
+  <div class="room-inner">
+    <div class="room-banner reveal">
+      <div class="room-banner-icon">📚</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">LORE LIBRARY — FLOOR 5</div>
+        <div class="room-banner-title">EDUCATION & ORIGIN</div>
+      </div>
+    </div>
+    <div class="edu-rpg-grid">
+      <div class="edu-rpg-card reveal">
+        <span class="edu-crest">🎓</span>
+        <div class="edu-rpg-degree">B.Tech – Mining Engineering</div>
+        <div class="edu-rpg-school">IIT BHU Varanasi · 14th Convocation 2025</div>
+        <div class="edu-rpg-footer">
+          <div class="edu-gpa-display"><div class="edu-gpa-num">7.55</div><div class="edu-gpa-label">CGPA</div></div>
+          <div class="edu-year-badge">2021 – 2025</div>
+        </div>
+      </div>
+      <div class="edu-rpg-card reveal">
+        <span class="edu-crest">📚</span>
+        <div class="edu-rpg-degree">Intermediate – BIEAP</div>
+        <div class="edu-rpg-school">Sri Chaitanya Junior College</div>
+        <div class="edu-rpg-footer">
+          <div class="edu-gpa-display"><div class="edu-gpa-num">8.50</div><div class="edu-gpa-label">GPA</div></div>
+          <div class="edu-year-badge">2018 – 2020</div>
+        </div>
+      </div>
+      <div class="edu-rpg-card reveal">
+        <span class="edu-crest">🏫</span>
+        <div class="edu-rpg-degree">Secondary – BSEAP</div>
+        <div class="edu-rpg-school">Prathibha E.M School</div>
+        <div class="edu-rpg-footer">
+          <div class="edu-gpa-display"><div class="edu-gpa-num">9.00</div><div class="edu-gpa-label">GPA</div></div>
+          <div class="edu-year-badge">2017 – 2018</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="room-divider"></div>
+
+<!-- ══ ROOM 6: ACHIEVEMENTS ══ -->
+<section id="achievements" class="dungeon-room room-achievements">
+  <div class="room-inner">
+    <div class="room-banner reveal">
+      <div class="room-banner-icon">🏆</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">TROPHY HALL — FLOOR 6</div>
+        <div class="room-banner-title">ACHIEVEMENTS UNLOCKED</div>
+      </div>
+    </div>
+    <div class="achv-rpg-grid">
+      <div class="achv-rpg-card reveal">
+        <div class="achv-trophy">🏆</div>
+        <div class="achv-rpg-text">Ranked <strong>#856 on GeeksforGeeks</strong> solving 500+ advanced DSA problems</div>
+        <div class="unlocked-badge">UNLOCKED</div>
+      </div>
+      <div class="achv-rpg-card reveal">
+        <div class="achv-trophy">🏏</div>
+        <div class="achv-rpg-text">Selected for <strong>National All India Twenty 20-20 Cricket Championship 2016</strong></div>
+        <div class="unlocked-badge">UNLOCKED</div>
+      </div>
+      <div class="achv-rpg-card reveal">
+        <div class="achv-trophy">💡</div>
+        <div class="achv-rpg-text">Experienced CS professional providing solutions on <strong>Chegg</strong></div>
+        <div class="unlocked-badge">UNLOCKED</div>
+      </div>
+      <div class="achv-rpg-card reveal">
+        <div class="achv-trophy">🎤</div>
+        <div class="achv-rpg-text"><strong>Workshop Executive – Technex'22:</strong> AI/ML/Web Dev workshops for 350+ students</div>
+        <div class="unlocked-badge">UNLOCKED</div>
+      </div>
+      <div class="achv-rpg-card reveal">
+        <div class="achv-trophy">🏅</div>
+        <div class="achv-rpg-text"><strong>Cricket Co-ordinator – Spardha'23:</strong> Managed 8 teams, logistics & scheduling</div>
+        <div class="unlocked-badge">UNLOCKED</div>
+      </div>
+      <div class="achv-rpg-card reveal">
+        <div class="achv-trophy">💸</div>
+        <div class="achv-rpg-text">Saved <strong>₹5.4 Crore</strong> through AI feedback automation at My Analytics School</div>
+        <div class="unlocked-badge">UNLOCKED</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="room-divider"></div>
+
+<!-- ══ ROOM 7: CONTACT ══ -->
+<section id="contact" class="dungeon-room room-contact">
+  <div class="room-inner">
+    <div class="room-banner reveal" style="justify-content:center">
+      <div class="room-banner-icon">💌</div>
+      <div class="room-banner-text">
+        <div class="room-banner-label">FINAL ROOM — FLOOR 7</div>
+        <div class="room-banner-title">TALK TO THE WIZARD</div>
+      </div>
+    </div>
+    <div class="contact-rpg-inner">
+      <span class="contact-rpg-sprite reveal">🧙‍♂️</span>
+      <div class="contact-rpg-msg reveal">
+        <p>Greetings, traveler! I'm open to AI projects, product strategy, and exciting quests. Shall we build something legendary together?</p>
+      </div>
+      <div class="contact-rpg-grid reveal">
+        <a href="mailto:saipremjaswanth@gmail.com" class="contact-rpg-card">
+          <span class="contact-rpg-icon">✉️</span>
+          <div class="contact-rpg-lbl">EMAIL SCROLL</div>
+          <div class="contact-rpg-val">saipremjaswanth@gmail.com</div>
+        </a>
+        <a href="tel:+917095068311" class="contact-rpg-card">
+          <span class="contact-rpg-icon">📞</span>
+          <div class="contact-rpg-lbl">CRYSTAL BALL</div>
+          <div class="contact-rpg-val">+91 7095068311</div>
+        </a>
+        <a href="https://linkedin.com" target="_blank" class="contact-rpg-card">
+          <span class="contact-rpg-icon">💼</span>
+          <div class="contact-rpg-lbl">GUILD PORTAL</div>
+          <div class="contact-rpg-val">View LinkedIn →</div>
+        </a>
+      </div>
+      <div class="contact-loc reveal">📍 BANGALORE, KARNATAKA · THE SILICON REALM</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+// <span>KJSP.EXE</span> v2.0 — QUEST COMPLETE · BUILT WITH ❤ IN BANGALORE · 2025 // <span>ALL ACHIEVEMENTS UNLOCKED</span> //
+</footer>
+
+<script>
+/* ══ STARFIELD ══ */
+(function(){
+  const c=document.getElementById('starfield'),ctx=c.getContext('2d');
+  let stars=[];
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<120;i++)stars.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5+.3,speed:Math.random()*.3+.1,bright:Math.random()});
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.bright+=.01;
+      const alpha=.3+.4*Math.abs(Math.sin(s.bright));
+      ctx.fillStyle=`rgba(245,197,24,${alpha})`;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();
+      s.y+=s.speed;
+      if(s.y>c.height){s.y=0;s.x=Math.random()*c.width}
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══ TITLE SCREEN ══ */
+let titleDismissed=false;
+function dismissTitle(){
+  if(titleDismissed)return;
+  titleDismissed=true;
+  document.getElementById('titleScreen').classList.add('fade-out');
+  setTimeout(()=>document.getElementById('titleScreen').style.display='none',900);
+  showNotif('⚔ QUEST STARTED — Welcome to KJSP\'s World!','notif-achv');
+  showXpDrop('+500 XP — Game Started!');
+}
+document.addEventListener('keydown',dismissTitle);
+document.addEventListener('click',e=>{
+  const item=e.target.closest('.title-menu-item');
+  if(item){
+    const action=item.dataset.action;
+    if(action==='hire'){window.location.href='mailto:saipremjaswanth@gmail.com';return}
+    if(action==='linkedin'){window.open('https://linkedin.com','_blank');return}
+  }
+  dismissTitle();
+});
+
+/* menu hover */
+document.querySelectorAll('.title-menu-item').forEach((el,i)=>{
+  el.addEventListener('mouseenter',()=>{
+    document.querySelectorAll('.title-menu-item').forEach(x=>x.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+});
+
+/* ══ NOTIFICATIONS ══ */
+function showNotif(msg,cls='notif-xp'){
+  const wrap=document.getElementById('notifications');
+  const n=document.createElement('div');
+  n.className='notif '+cls;
+  n.textContent=msg;
+  wrap.appendChild(n);
+  setTimeout(()=>{n.classList.add('fade');setTimeout(()=>n.remove(),500)},3000);
+}
+
+/* ══ XP DROPS ══ */
+function showXpDrop(msg,x,y){
+  const el=document.createElement('div');
+  el.className='xp-popup';
+  el.textContent=msg;
+  el.style.left=(x||window.innerWidth/2-40)+'px';
+  el.style.top=(y||window.innerHeight/2)+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1600);
+}
+
+/* ══ INTERSECTION OBSERVER ══ */
+const sectionXP={skills:'+1200 XP — Skills Discovered!',experience:'+2000 XP — Quest Log Opened!',projects:'+1500 XP — Items Forged!',education:'+800 XP — Lore Unlocked!',achievements:'+1000 XP — Trophy Hall Entered!',contact:'+500 XP — Wizard Found!'};
+const sectionNotif={skills:'⚔ SKILLS ROOM UNLOCKED',experience:'📜 QUEST ARCHIVE OPENED',projects:'🗡 ITEM FORGE DISCOVERED',education:'📚 LORE LIBRARY ENTERED',achievements:'🏆 TROPHY HALL CLEARED',contact:'💌 FINAL BOSS REACHED'};
+
+const seenSections=new Set();
+const mainObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const el=e.target;
+      el.classList.add('visible');
+      // skill bars
+      el.querySelectorAll('.skill-rpg-bar').forEach(b=>{b.style.width=b.dataset.w+'%'});
+      // section notifications
+      const sec=el.closest('section');
+      if(sec&&!seenSections.has(sec.id)&&sec.id!=='hero'){
+        seenSections.add(sec.id);
+        const xp=sectionXP[sec.id];
+        const notif=sectionNotif[sec.id];
+        if(xp)setTimeout(()=>showXpDrop(xp),400);
+        if(notif)setTimeout(()=>showNotif(notif,'notif-achv'),600);
+      }
+    }
+  });
+},{threshold:.12});
+
+document.querySelectorAll('.reveal,.tl-rpg-item,.proj-rpg-card,.edu-rpg-card,.achv-rpg-card,.skill-rpg-panel').forEach(el=>mainObs.observe(el));
+
+/* stagger proj cards */
+document.querySelectorAll('.proj-rpg-card').forEach((c,i)=>c.style.transitionDelay=(i*.08)+'s');
+
+/* ══ HUD NAV ACTIVE ══ */
+const sections=document.querySelectorAll('section[id]');
+const navBtns=document.querySelectorAll('.hud-nav-btn');
+const secObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      navBtns.forEach(b=>{b.classList.toggle('active',b.getAttribute('href')==='#'+e.target.id)});
+    }
+  });
+},{threshold:.4});
+sections.forEach(s=>secObs.observe(s));
+
+/* ══ CARD CLICK XP ══ */
+document.querySelectorAll('.proj-rpg-card,.achv-rpg-card,.edu-rpg-card,.tl-rpg-card').forEach(card=>{
+  card.addEventListener('click',e=>{
+    showXpDrop('+50 XP',e.clientX,e.clientY);
+  });
+});
+
+/* ══ SKILL PANEL HOVER NOTIF ══ */
+document.querySelectorAll('.skill-rpg-panel').forEach(panel=>{
+  panel.addEventListener('mouseenter',()=>{
+    const title=panel.querySelector('.skill-rpg-title')?.textContent;
+    showNotif('📖 '+title,'notif-item');
+  });
+});
+
+/* ══ CONTACT TYPEWRITER RE-TRIGGER ══ */
+const contactObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const p=e.target.querySelector('.contact-rpg-msg p');
+      if(p){p.style.animation='none';void p.offsetWidth;p.style.animation='typewriter 3s steps(80) forwards'}
+    }
+  });
+},{threshold:.5});
+const contactSec=document.getElementById('contact');
+if(contactSec)contactObs.observe(contactSec);
+</script>
+</body>
+</html>
